@@ -2,6 +2,22 @@ import streamlit as st
 import pandas as pd
 import urllib.parse
 
+import streamlit as st
+import pandas as pd
+from geopy.geocoders import ArcGIS
+# ... other imports ...
+
+# --- STEP 4: PASTE HELPER FUNCTIONS HERE ---
+def calculate_sci_score(miles_optimized, total_deliveries):
+    """GSF Standard SCI calculation."""
+    operational_c = miles_optimized * 0.404 
+    embodied_c = 0.025 
+    sci_score = (operational_c + embodied_c) / total_deliveries
+    return sci_score
+
+# --- UI STYLING & APP START ---
+st.set_page_config(...)
+# ... the rest of your app ...
 # --- 1. APP CONFIG & STYLING (The "Uber" Look) ---
 st.set_page_config(page_title="Universal Router", layout="wide")
 
@@ -66,4 +82,40 @@ if st.session_state.ENABLE_GSF_METRICS:
     st.divider()
 
 st.write("### 🚗 Start Your Global Route")
-# We will add the Location Search and Map in the next step!
+# --- 5. GLOBAL SEARCH & MAPPING ---
+def search_address(query, region="World"):
+    """Search for any address globally."""
+    try:
+        # We use ArcGIS geocoder for high accuracy across all countries
+        geolocator = ArcGIS()
+        location = geolocator.geocode(query)
+        return location
+    except Exception as e:
+        st.error(f"Search Error: {e}")
+        return None
+
+st.write("### 🌍 Global Route Planner")
+col_src, col_dst = st.columns(2)
+
+with col_src:
+    start_q = st.text_input("Start (City, Address, or Landmark)", placeholder="e.g. Eiffel Tower")
+with col_dst:
+    end_q = st.text_input("End (City, Address, or Landmark)", placeholder="e.g. London Eye")
+
+if st.button("🗺️ Generate Global Route"):
+    start_res = search_address(start_q)
+    end_res = search_address(end_q)
+    
+    if start_res and end_res:
+        st.session_state.start_node = start_res.address
+        st.session_state.end_node = end_res.address
+        st.success(f"Route set from {start_res.address[:30]}... to {end_res.address[:30]}...")
+        
+        # Center the map between the two points
+        avg_lat = (start_res.latitude + end_res.latitude) / 2
+        avg_lon = (start_res.longitude + end_res.longitude) / 2
+        
+        m = folium.Map(location=[avg_lat, avg_lon], zoom_start=4)
+        folium.Marker([start_res.latitude, start_res.longitude], tooltip="Start", icon=folium.Icon(color='blue')).add_to(m)
+        folium.Marker([end_res.latitude, end_res.longitude], tooltip="End", icon=folium.Icon(color='black')).add_to(m)
+        st_folium(m, width="100%", height=400)
