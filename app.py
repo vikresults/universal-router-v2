@@ -16,7 +16,7 @@ def calculate_sci_score(miles_optimized, total_deliveries):
     return sci_score
 
 # --- UI STYLING & APP START ---
-st.set_page_config(...)
+st.set_page_config(page_title="Universal Router", layout="wide")
 # ... the rest of your app ...
 # --- 1. APP CONFIG & STYLING (The "Uber" Look) ---
 st.set_page_config(page_title="Universal Router", layout="wide")
