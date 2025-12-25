@@ -102,38 +102,46 @@ with col_src:
 with col_dst:
     end_q = st.text_input("End (City, Address, or Landmark)", placeholder="e.g. London Eye")
 
+# --- THE SEARCH & MAP ACTION AREA ---
 if st.button("🗺️ Generate Global Route"):
+    # 1. Look up the addresses
     start_res = search_address(start_q)
     end_res = search_address(end_q)
     
+    # 2. STEP 5.1: THE SAFETY GATE
+    # This checks: "Did we actually find both addresses?"
     if start_res and end_res:
+        # --- SUCCESS PATH ---
         st.session_state.start_node = start_res.address
         st.session_state.end_node = end_res.address
-        st.success(f"Route set from {start_res.address[:30]}... to {end_res.address[:30]}...")
-        # --- NEW: REAL DISTANCE CALCULATION ---
-        from geopy.distance import geodesic
         
-        # Calculate the direct distance (as the crow flies)
+        # Calculate Real Distance between coordinates
+        from geopy.distance import geodesic
         start_coords = (start_res.latitude, start_res.longitude)
         end_coords = (end_res.latitude, end_res.longitude)
         distance_miles = geodesic(start_coords, end_coords).miles
         
-        # Update the session state so the Dashboard at the top knows the miles
+        # Update the Session State for the Green Engine
         st.session_state.current_miles = distance_miles
-        
-        # Calculate SCI and Green Rewards based on real data
         kg_saved, reward_text = get_green_impact(distance_miles)
         
-        # Display the result immediately under the map
-        st.balloons() # A little celebration for a sustainable route!
-        st.markdown(f"### 🌱 This trip saves **{kg_saved:.2f} kg** of CO2!")
-        st.info(reward_text)
+        # Show the visual celebration
+        st.balloons()
+        st.success(f"✅ Route Found: {distance_miles:.1f} miles")
         
-        # Center the map between the two points
+        # Build the Map
         avg_lat = (start_res.latitude + end_res.latitude) / 2
         avg_lon = (start_res.longitude + end_res.longitude) / 2
-        
         m = folium.Map(location=[avg_lat, avg_lon], zoom_start=4)
-        folium.Marker([start_res.latitude, start_res.longitude], tooltip="Start", icon=folium.Icon(color='blue')).add_to(m)
-        folium.Marker([end_res.latitude, end_res.longitude], tooltip="End", icon=folium.Icon(color='black')).add_to(m)
+        folium.Marker(start_coords, tooltip="Start", icon=folium.Icon(color='blue')).add_to(m)
+        folium.Marker(end_coords, tooltip="End", icon=folium.Icon(color='black')).add_to(m)
         st_folium(m, width="100%", height=400)
+        
+        # Show the Green Reward
+        st.info(reward_text)
+        st.write(f"🌱 Carbon Avoided: {kg_saved:.2f} kg CO2")
+
+    else:
+        # --- THE FALLBACK PATH ---
+        # If the search failed, we show this instead of crashing
+        st.error("📍 Location Not Found. Please check your spelling or try adding a city name (e.g. '123 Main St, New York').")
