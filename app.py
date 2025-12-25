@@ -72,16 +72,18 @@ app_phase = st.radio(
 st.divider()
 
 # --- PHASE 1: PLANNING ---
-if app_phase == "📍 Plan Trip":
-    # MOVE ALL YOUR SEARCH & MAP CODE UNDER THIS BLOCK
-    # (The inputs start_q, end_q, and the Generate Route button)
-    st.info("Search for a destination to see your Green Savings.")
-    
-    # [All your previous code from Step 5.1 goes here]
-    # IMPORTANT: All that code must be INDENTED one level to the right.
+# ... (Title and app_phase radio button are above here) ...
 
+# --- PHASE 1: PLANNING ---
+if app_phase == "📍 Plan Trip":
+    # PASTE THE NEW CODE HERE (The inputs, the button, the map)
+    # Ensure it is all indented once to the right
+    
 # --- PHASE 2: ACTIVE DRIVE ---
 elif app_phase == "🚗 Active Drive":
+    # KEEP YOUR EXISTING DRIVE CODE HERE
+    st.subheader("Navigation Center")
+    # ...
     st.subheader("Navigation Center")
     if 'start_node' in st.session_state:
         st.write(f"**From:** {st.session_state.start_node}")
