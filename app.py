@@ -96,12 +96,54 @@ st.divider()
 # ... (Title and app_phase radio button are above here) ...
 
 # --- PHASE 1: PLANNING ---
-if app_phase == "📍 Plan Trip":
-    # PASTE THE NEW CODE HERE (The inputs, the button, the map)
-    # Ensure it is all indented once to the right
+st.info("Search for a destination to see your Green Savings.")
     
-# --- PHASE 2: ACTIVE DRIVE ---
-elif app_phase == "🚗 Active Drive":
+    # Input boxes
+    col1, col2 = st.columns(2)
+    with col1:
+        start_q = st.text_input("Start Location", placeholder="e.g. London, UK")
+    with col2:
+        end_q = st.text_input("Destination", placeholder="e.g. Paris, France")
+
+    # The Button
+    if st.button("🗺️ Generate Global Route"):
+        if start_q and end_q:
+            with st.spinner("Searching global databases..."):
+                start_res = search_address(start_q)
+                end_res = search_address(end_q)
+            
+            if start_res and end_res:
+                # Store coordinates
+                start_coords = (start_res.latitude, start_res.longitude)
+                end_coords = (end_res.latitude, end_res.longitude)
+                
+                # Calculate Distance
+                dist = geodesic(start_coords, end_coords).miles
+                st.session_state.current_miles = dist
+                st.session_state.start_node = start_res.address
+                st.session_state.end_node = end_res.address
+                
+                # Show results
+                st.balloons()
+                st.success(f"Route Found: {dist:.1f} miles")
+                
+                # Create the Map
+                avg_lat = (start_res.latitude + end_res.latitude) / 2
+                avg_lon = (start_res.longitude + end_res.longitude) / 2
+                m = folium.Map(location=[avg_lat, avg_lon], zoom_start=4)
+                folium.Marker(start_coords, popup="Start", icon=folium.Icon(color='blue')).add_to(m)
+                folium.Marker(end_coords, popup="End", icon=folium.Icon(color='green')).add_to(m)
+                
+                # Render Map
+                st_folium(m, width="100%", height=450)
+                
+                # Green Feedback
+                kg, reward = get_green_impact(dist)
+                st.info(reward)
+            else:
+                st.error("📍 Location Not Found. Try adding a city/country name.")
+        else:
+            st.warning("Please enter both locations.")
     # KEEP YOUR EXISTING DRIVE CODE HERE
     st.subheader("Navigation Center")
     # ...
