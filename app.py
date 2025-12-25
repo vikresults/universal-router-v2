@@ -110,6 +110,24 @@ if st.button("🗺️ Generate Global Route"):
         st.session_state.start_node = start_res.address
         st.session_state.end_node = end_res.address
         st.success(f"Route set from {start_res.address[:30]}... to {end_res.address[:30]}...")
+        # --- NEW: REAL DISTANCE CALCULATION ---
+        from geopy.distance import geodesic
+        
+        # Calculate the direct distance (as the crow flies)
+        start_coords = (start_res.latitude, start_res.longitude)
+        end_coords = (end_res.latitude, end_res.longitude)
+        distance_miles = geodesic(start_coords, end_coords).miles
+        
+        # Update the session state so the Dashboard at the top knows the miles
+        st.session_state.current_miles = distance_miles
+        
+        # Calculate SCI and Green Rewards based on real data
+        kg_saved, reward_text = get_green_impact(distance_miles)
+        
+        # Display the result immediately under the map
+        st.balloons() # A little celebration for a sustainable route!
+        st.markdown(f"### 🌱 This trip saves **{kg_saved:.2f} kg** of CO2!")
+        st.info(reward_text)
         
         # Center the map between the two points
         avg_lat = (start_res.latitude + end_res.latitude) / 2
