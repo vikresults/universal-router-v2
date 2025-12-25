@@ -63,6 +63,47 @@ def get_green_impact(miles_saved):
 
 # --- 4. MAIN UI ---
 st.title("🌐 Universal Router")
+# --- STEP 6: PHASE SELECTOR ---
+# This acts like the navigation bar at the bottom of Uber/Lyft
+app_phase = st.radio(
+    "Select Mode",
+    ["📍 Plan Trip", "🚗 Active Drive", "📊 Impact Report"],
+    horizontal=True
+)
+
+st.divider()
+
+# --- PHASE 1: PLANNING ---
+if app_phase == "📍 Plan Trip":
+    # MOVE ALL YOUR SEARCH & MAP CODE UNDER THIS BLOCK
+    # (The inputs start_q, end_q, and the Generate Route button)
+    st.info("Search for a destination to see your Green Savings.")
+    
+    # [All your previous code from Step 5.1 goes here]
+    # IMPORTANT: All that code must be INDENTED one level to the right.
+
+# --- PHASE 2: ACTIVE DRIVE ---
+elif app_phase == "🚗 Active Drive":
+    st.subheader("Navigation Center")
+    if 'start_node' in st.session_state:
+        st.write(f"**From:** {st.session_state.start_node}")
+        st.write(f"**To:** {st.session_state.end_node}")
+        
+        # Link button to actually launch GPS
+        google_url = f"https://www.google.com/maps/dir/?api=1&origin={st.session_state.start_node}&destination={st.session_state.end_node}"
+        st.link_button("🚀 OPEN GPS NAVIGATION", google_url, type="primary")
+    else:
+        st.warning("Please plan a trip first!")
+
+# --- PHASE 3: IMPACT REPORT ---
+elif app_phase == "📊 Impact Report":
+    st.subheader("Your Green Scorecard")
+    if 'current_miles' in st.session_state:
+        total_kg = st.session_state.current_miles * 0.404
+        st.metric("Carbon Intensity (SCI) Avoided", f"{total_kg:.2f} kg")
+        st.success("You are in the top 5% of sustainable drivers this week! 🏆")
+    else:
+        st.write("No data available yet. Start driving to save carbon!")
 st.caption("Global Logistics | Sustainable Routing | Mobile-First")
 
 # Display the Green Dashboard if toggled ON
