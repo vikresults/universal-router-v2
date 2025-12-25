@@ -4,6 +4,27 @@ from streamlit_folium import st_folium
 from geopy.geocoders import ArcGIS
 from geopy.distance import geodesic
 # ... other imports ...
+def search_address(query):
+    if not query or len(query) < 3:
+        return None
+    try:
+        # Initializing the engine inside the function for stability
+        geolocator = ArcGIS(user_agent="universal_router_v2")
+        return geolocator.geocode(query)
+    except Exception:
+        return None
+
+def get_green_impact(miles):
+    # Standard car emits approx 0.404kg per mile
+    kg_saved = miles * 0.404
+    rewards = [
+        "🌱 You just saved a squirrel's favorite tree!",
+        "🌍 The atmosphere high-fives you!",
+        "🍃 Carbon? I don't know her. Great job!",
+        "🏆 Eco-Warrior status unlocked!"
+    ]
+    import random
+    return kg_saved, random.choice(rewards)
 
 # --- STEP 4: PASTE HELPER FUNCTIONS HERE ---
 def calculate_sci_score(miles_optimized, total_deliveries):
