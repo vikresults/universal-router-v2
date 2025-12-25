@@ -97,10 +97,8 @@ st.divider()
 
 # --- PHASE 1: PLANNING ---
 st.info("Search for a destination to see your Green Savings.")
-    
-    # Input boxes
-col1, col2 = st.columns(2)
-with col1:
+    col1, col2 = st.columns(2)
+    with col1:
         start_q = st.text_input("Start Location", placeholder="e.g. London, UK")
     with col2:
         end_q = st.text_input("Destination", placeholder="e.g. Paris, France")
