@@ -18,15 +18,10 @@ def search_address(query):
         return None
 
 def calculate_gsf_metrics(miles):
-    """
-    GSF Standard SCI calculation.
-    Operational (O): 0.404 kg/mile
-    Embodied (E): 0.025 kg (Device lifecycle)
-    """
+    """GSF Standard SCI calculation: Operational + Embodied."""
     operational_c = miles * 0.404 
     embodied_c = 0.025 
-    sci_score = operational_c + embodied_c
-    return sci_score
+    return operational_c + embodied_c
 
 # --- 3. UI STYLING ---
 st.markdown("""
@@ -47,16 +42,10 @@ st.markdown("""
 
 # --- 4. MAIN NAVIGATION ---
 st.title("🌐 Universal Router")
-app_phase = st.radio(
-    "Select Mode",
-    ["📍 Plan Trip", "🚗 Active Drive", "📊 Impact Report"],
-    horizontal=True
-)
+app_phase = st.radio("Select Mode", ["📍 Plan Trip", "🚗 Active Drive", "📊 Impact Report"], horizontal=True)
 st.divider()
 
-# --- 5. PHASE LOGIC ---
-
-# PHASE 1: PLANNING (GSF OPTIMIZED)
+# --- 5. PHASE 1: PLANNING (GSF OPTIMIZED) ---
 if app_phase == "📍 Plan Trip":
     st.info("GSF Standard: Calculating Software Carbon Intensity (SCI)")
     
@@ -66,71 +55,71 @@ if app_phase == "📍 Plan Trip":
     with col2:
         end_q = st.text_input("Destination", placeholder="e.g. Paris, France", key="e_in")
 
+    # ACTION BUTTON
     if st.button("🗺️ Generate Global Route"):
         if start_q and end_q:
-            with st.spinner("Analyzing Route Sustainability..."):
+            with st.spinner("Analyzing Sustainability Data..."):
                 start_res = search_address(start_q)
                 end_res = search_address(end_q)
             
             if start_res and end_res:
-                # Store coordinates and address in session state
+                # SAVE EVERYTHING TO SESSION STATE (This stops the disappearing act)
                 st.session_state.start_node = start_res.address
                 st.session_state.end_node = end_res.address
-                
-                coords_s = (start_res.latitude, start_res.longitude)
-                coords_e = (end_res.latitude, end_res.longitude)
-                dist = geodesic(coords_s, coords_e).miles
-                st.session_state.current_miles = dist
-                
-                # GSF Impact Box Display
-                sci_val = calculate_gsf_metrics(dist)
-                st.markdown(f"""
-                <div class="green-card">
-                    <h3 style="margin:0; color:#1e4620;">🌱 GSF Impact Report</h3>
-                    <p style="margin:5px 0;"><b>SCI Score:</b> {sci_val:.2f} kg CO2e</p>
-                    <small>Standard: SCI = (Operational Emissions + Embodied Emissions)</small>
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # STABLE MAP LOGIC
-                avg_lat = (start_res.latitude + end_res.latitude) / 2
-                avg_lon = (start_res.longitude + end_res.longitude) / 2
-                
-                # Create the Folium object
-                m = folium.Map(location=[avg_lat, avg_lon], zoom_start=4)
-                folium.Marker(coords_s, popup="Start", icon=folium.Icon(color='blue')).add_to(m)
-                folium.Marker(coords_e, popup="End", icon=folium.Icon(color='green')).add_to(m)
-                
-                # RENDER MAP: The 'key' parameter keeps the map from disappearing
-                st_folium(m, width="100%", height=450, key="trip_map_permanent")
-                
+                st.session_state.coords_s = (start_res.latitude, start_res.longitude)
+                st.session_state.coords_e = (end_res.latitude, end_res.longitude)
+                st.session_state.dist = geodesic(st.session_state.coords_s, st.session_state.coords_e).miles
+                st.session_state.show_results = True
                 st.balloons()
             else:
-                st.error("📍 Location Not Found. Please try adding a city or country name.")
+                st.error("📍 Location Not Found.")
         else:
             st.warning("Please enter both locations.")
 
-# PHASE 2: ACTIVE DRIVE
+    # --- DISPLAY AREA (Outside the button click, inside the phase) ---
+    if st.session_state.get('show_results'):
+        # 1. GSF Impact Box
+        sci_val = calculate_gsf_metrics(st.session_state.dist)
+        st.markdown(f"""
+        <div class="green-card">
+            <h3 style="margin:0; color:#1e4620;">🌱 GSF Impact Report</h3>
+            <p style="margin:5px 0;"><b>SCI Score:</b> {sci_val:.2f} kg CO2e Saved</p>
+            <small>Standard: SCI = (Operational + Embodied Emissions)</small>
+        </div>
+        """, unsafe_allow_html=True)
+
+        
+
+        # 2. Map Generation
+        lat_avg = (st.session_state.coords_s[0] + st.session_state.coords_e[0]) / 2
+        lon_avg = (st.session_state.coords_s[1] + st.session_state.coords_e[1]) / 2
+        m = folium.Map(location=[lat_avg, lon_avg], zoom_start=4)
+        folium.Marker(st.session_state.coords_s, popup="Start", icon=folium.Icon(color='blue')).add_to(m)
+        folium.Marker(st.session_state.coords_e, popup="End", icon=folium.Icon(color='green')).add_to(m)
+        
+        # Display the Map
+        st_folium(m, width="100%", height=450, key="stable_map")
+
+# --- 6. PHASE 2: ACTIVE DRIVE ---
 elif app_phase == "🚗 Active Drive":
     st.subheader("Navigation Center")
     if 'start_node' in st.session_state:
         st.write(f"🚩 **Current Route:** {st.session_state.start_node} → {st.session_state.end_node}")
-        s_clean = st.session_state.start_node.replace(" ", "+")
-        e_clean = st.session_state.end_node.replace(" ", "+")
-        google_url = f"https://www.google.com/maps/dir/?api=1&origin={s_clean}&destination={e_clean}"
-        st.link_button("🚀 OPEN GPS NAVIGATION", google_url, type="primary")
+        s_url = st.session_state.start_node.replace(" ", "+")
+        e_url = st.session_state.end_node.replace(" ", "+")
+        st.link_button("🚀 OPEN GPS NAVIGATION", f"https://www.google.com/maps/dir/{s_url}/{e_url}", type="primary")
     else:
-        st.warning("Please go to 'Plan Trip' first to set your destination.")
+        st.warning("Please plan a trip first!")
 
-# PHASE 3: IMPACT REPORT
+# --- 7. PHASE 3: IMPACT REPORT ---
 elif app_phase == "📊 Impact Report":
     st.subheader("Your Green Scorecard")
-    if 'current_miles' in st.session_state:
-        sci_val = calculate_gsf_metrics(st.session_state.current_miles)
-        st.metric("Total SCI Score Avoided", f"{sci_val:.2f} kg CO2e")
-        st.success("Your route is optimized for lower carbon intensity! 🏆")
+    if 'dist' in st.session_state:
+        sci_val = calculate_gsf_metrics(st.session_state.dist)
+        st.metric("Total CO2 Avoided", f"{sci_val:.2f} kg")
+        st.success("Great job! You are using optimized GSF routing standards.")
     else:
-        st.write("No trip data available yet.")
+        st.write("No trip data found.")
 
 st.divider()
-st.caption("Universal Router v2.0 | GSF SCI Standard | Sustainable Logistics 2025")
+st.caption("Universal Router v2.0 | GSF Standard | 2025")
