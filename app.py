@@ -8,7 +8,7 @@ import random
 # --- 1. APP CONFIG ---
 st.set_page_config(page_title="Universal Router", layout="wide")
 
-# --- 2. THE SUSTAINABILITY ENGINE ---
+# --- 2. GSF SUSTAINABILITY ENGINE ---
 def search_address(query):
     if not query or len(query) < 3:
         return None
@@ -17,22 +17,17 @@ def search_address(query):
         return geolocator.geocode(query)
     except Exception:
         return None
+
 def calculate_gsf_metrics(miles):
-    """GSF Standard SCI calculation."""
+    """
+    GSF Standard SCI calculation.
+    Operational (O): 0.404 kg/mile
+    Embodied (E): 0.025 kg (Device lifecycle)
+    """
     operational_c = miles * 0.404 
     embodied_c = 0.025 
     sci_score = operational_c + embodied_c
     return sci_score
-def get_green_impact(miles_saved):
-    # Standard: 404 grams of CO2 per mile (EPA avg)
-    kg_co2 = miles_saved * 0.404
-    if kg_co2 > 10:
-        reward = "🚀 You saved enough CO2 to binge-watch 3 seasons of a show in 4K!"
-    elif kg_co2 > 5:
-        reward = "☕ That's equivalent to making 150 cups of coffee guilt-free!"
-    else:
-        reward = "📱 You saved enough energy to charge your phone for a whole year!"
-    return kg_co2, reward
 
 # --- 3. UI STYLING ---
 st.markdown("""
@@ -44,29 +39,23 @@ st.markdown("""
         font-size: 18px; font-weight: bold; transition: 0.3s;
     }
     .stButton > button:hover { background-color: #276EF1; color: white; }
-    .green-card {
-        background-color: #e6f4ea; padding: 20px; border-radius: 15px;
-        border-left: 5px solid #34a853; margin-bottom: 20px;
-    }
     </style>
     """, unsafe_allow_html=True)
 
-# --- 4. MAIN UI & NAVIGATION ---
+# --- 4. MAIN NAVIGATION ---
 st.title("🌐 Universal Router")
-
 app_phase = st.radio(
     "Select Mode",
     ["📍 Plan Trip", "🚗 Active Drive", "📊 Impact Report"],
     horizontal=True
 )
-
 st.divider()
 
-# --- 5. APP PHASES ---
+# --- 5. PHASE LOGIC ---
 
-# PHASE 1: PLANNING
+# PHASE 1: PLANNING (GSF OPTIMIZED)
 if app_phase == "📍 Plan Trip":
-   st.info("GSF Standard: Calculating Software Carbon Intensity (SCI)")
+    st.info("GSF Standard: Calculating Software Carbon Intensity (SCI)")
     
     col1, col2 = st.columns(2)
     with col1:
@@ -81,6 +70,7 @@ if app_phase == "📍 Plan Trip":
                 end_res = search_address(end_q)
             
             if start_res and end_res:
+                # Store coordinates
                 st.session_state.start_node = start_res.address
                 st.session_state.end_node = end_res.address
                 
@@ -89,7 +79,7 @@ if app_phase == "📍 Plan Trip":
                 dist = geodesic(coords_s, coords_e).miles
                 st.session_state.current_miles = dist
                 
-                # --- GSF IMPACT BOX ---
+                # GSF Impact Box
                 sci_val = calculate_gsf_metrics(dist)
                 st.markdown(f"""
                 <div style="background-color: #e6f4ea; padding: 20px; border-radius: 15px; border-left: 5px solid #34a853; margin-bottom: 20px;">
@@ -99,42 +89,40 @@ if app_phase == "📍 Plan Trip":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                
-                
-                # --- STABLE MAP ---
+                # Stable Map (Fixed the flickering/disappearing issue)
                 avg_lat = (start_res.latitude + end_res.latitude) / 2
                 avg_lon = (start_res.longitude + end_res.longitude) / 2
                 m = folium.Map(location=[avg_lat, avg_lon], zoom_start=4)
                 folium.Marker(coords_s, popup="Start").add_to(m)
                 folium.Marker(coords_e, popup="End").add_to(m)
                 
-                # 'key' stops the map from disappearing!
-                st_folium(m, width="100%", height=450, key="trip_map")
+                st_folium(m, width="100%", height=450, key="trip_map_stable")
             else:
-                st.error("📍 Location Not Found.")
+                st.error("📍 Location Not Found. Please try adding a city name.")
+        else:
+            st.warning("Please enter both locations.")
+
+# PHASE 2: ACTIVE DRIVE
 elif app_phase == "🚗 Active Drive":
     st.subheader("Navigation Center")
     if 'start_node' in st.session_state:
-        st.write(f"**From:** {st.session_state.start_node}")
-        st.write(f"**To:** {st.session_state.end_node}")
-        
-        # Link button to GPS
-        start_clean = st.session_state.start_node.replace(" ", "+")
-        end_clean = st.session_state.end_node.replace(" ", "+")
-        google_url = f"https://www.google.com/maps/dir/?api=1&origin={start_clean}&destination={end_clean}"
+        st.write(f"🚩 **Route:** {st.session_state.start_node} → {st.session_state.end_node}")
+        s_clean = st.session_state.start_node.replace(" ", "+")
+        e_clean = st.session_state.end_node.replace(" ", "+")
+        google_url = f"https://www.google.com/maps/dir/?api=1&origin={s_clean}&destination={e_clean}"
         st.link_button("🚀 OPEN GPS NAVIGATION", google_url, type="primary")
     else:
-        st.warning("Please plan a trip first in the 'Plan Trip' tab!")
+        st.warning("Please plan a trip first!")
 
 # PHASE 3: IMPACT REPORT
 elif app_phase == "📊 Impact Report":
     st.subheader("Your Green Scorecard")
     if 'current_miles' in st.session_state:
-        kg_saved, reward = get_green_impact(st.session_state.current_miles)
-        st.metric("CO2 Avoided", f"{kg_saved:.2f} kg")
-        st.success(reward)
+        sci_val = calculate_gsf_metrics(st.session_state.current_miles)
+        st.metric("Total SCI Score", f"{sci_val:.2f} kg CO2e")
+        st.success("Your route is optimized for lower carbon intensity! 🏆")
     else:
-        st.write("No data available yet. Start planning to see your impact!")
+        st.write("No data yet. Start planning to see your impact!")
 
 st.divider()
-st.caption("Global Logistics | Sustainable Routing | Mobile-First | 2025")
+st.caption("Universal Router v2.0 | GSF SCI Standard | 2025")
