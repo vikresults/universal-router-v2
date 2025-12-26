@@ -57,6 +57,7 @@ st.divider()
 if app_phase == "📍 Plan Trip":
     st.info("GSF Standard: Calculating Software Carbon Intensity (SCI)")
     
+    # This is line 71 - now perfectly aligned!
     col1, col2 = st.columns(2)
     with col1:
         start_q = st.text_input("Start Location", placeholder="e.g. London, UK", key="s_in")
