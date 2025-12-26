@@ -3,7 +3,6 @@ import folium
 from streamlit_folium import st_folium
 from geopy.geocoders import ArcGIS
 from geopy.distance import geodesic
-import random
 
 # --- 1. APP CONFIG ---
 st.set_page_config(page_title="Universal Router", layout="wide")
@@ -39,6 +38,10 @@ st.markdown("""
         font-size: 18px; font-weight: bold; transition: 0.3s;
     }
     .stButton > button:hover { background-color: #276EF1; color: white; }
+    .green-card {
+        background-color: #e6f4ea; padding: 20px; border-radius: 15px;
+        border-left: 5px solid #34a853; margin-bottom: 20px;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -57,7 +60,6 @@ st.divider()
 if app_phase == "📍 Plan Trip":
     st.info("GSF Standard: Calculating Software Carbon Intensity (SCI)")
     
-    # This is line 71 - now perfectly aligned!
     col1, col2 = st.columns(2)
     with col1:
         start_q = st.text_input("Start Location", placeholder="e.g. London, UK", key="s_in")
@@ -71,7 +73,7 @@ if app_phase == "📍 Plan Trip":
                 end_res = search_address(end_q)
             
             if start_res and end_res:
-                # Store coordinates
+                # Store coordinates and address in session state
                 st.session_state.start_node = start_res.address
                 st.session_state.end_node = end_res.address
                 
@@ -80,26 +82,31 @@ if app_phase == "📍 Plan Trip":
                 dist = geodesic(coords_s, coords_e).miles
                 st.session_state.current_miles = dist
                 
-                # GSF Impact Box
+                # GSF Impact Box Display
                 sci_val = calculate_gsf_metrics(dist)
                 st.markdown(f"""
-                <div style="background-color: #e6f4ea; padding: 20px; border-radius: 15px; border-left: 5px solid #34a853; margin-bottom: 20px;">
+                <div class="green-card">
                     <h3 style="margin:0; color:#1e4620;">🌱 GSF Impact Report</h3>
                     <p style="margin:5px 0;"><b>SCI Score:</b> {sci_val:.2f} kg CO2e</p>
                     <small>Standard: SCI = (Operational Emissions + Embodied Emissions)</small>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Stable Map (Fixed the flickering/disappearing issue)
+                # STABLE MAP LOGIC
                 avg_lat = (start_res.latitude + end_res.latitude) / 2
                 avg_lon = (start_res.longitude + end_res.longitude) / 2
-                m = folium.Map(location=[avg_lat, avg_lon], zoom_start=4)
-                folium.Marker(coords_s, popup="Start").add_to(m)
-                folium.Marker(coords_e, popup="End").add_to(m)
                 
-                st_folium(m, width="100%", height=450, key="trip_map_stable")
+                # Create the Folium object
+                m = folium.Map(location=[avg_lat, avg_lon], zoom_start=4)
+                folium.Marker(coords_s, popup="Start", icon=folium.Icon(color='blue')).add_to(m)
+                folium.Marker(coords_e, popup="End", icon=folium.Icon(color='green')).add_to(m)
+                
+                # RENDER MAP: The 'key' parameter keeps the map from disappearing
+                st_folium(m, width="100%", height=450, key="trip_map_permanent")
+                
+                st.balloons()
             else:
-                st.error("📍 Location Not Found. Please try adding a city name.")
+                st.error("📍 Location Not Found. Please try adding a city or country name.")
         else:
             st.warning("Please enter both locations.")
 
@@ -107,23 +114,23 @@ if app_phase == "📍 Plan Trip":
 elif app_phase == "🚗 Active Drive":
     st.subheader("Navigation Center")
     if 'start_node' in st.session_state:
-        st.write(f"🚩 **Route:** {st.session_state.start_node} → {st.session_state.end_node}")
+        st.write(f"🚩 **Current Route:** {st.session_state.start_node} → {st.session_state.end_node}")
         s_clean = st.session_state.start_node.replace(" ", "+")
         e_clean = st.session_state.end_node.replace(" ", "+")
         google_url = f"https://www.google.com/maps/dir/?api=1&origin={s_clean}&destination={e_clean}"
         st.link_button("🚀 OPEN GPS NAVIGATION", google_url, type="primary")
     else:
-        st.warning("Please plan a trip first!")
+        st.warning("Please go to 'Plan Trip' first to set your destination.")
 
 # PHASE 3: IMPACT REPORT
 elif app_phase == "📊 Impact Report":
     st.subheader("Your Green Scorecard")
     if 'current_miles' in st.session_state:
         sci_val = calculate_gsf_metrics(st.session_state.current_miles)
-        st.metric("Total SCI Score", f"{sci_val:.2f} kg CO2e")
+        st.metric("Total SCI Score Avoided", f"{sci_val:.2f} kg CO2e")
         st.success("Your route is optimized for lower carbon intensity! 🏆")
     else:
-        st.write("No data yet. Start planning to see your impact!")
+        st.write("No trip data available yet.")
 
 st.divider()
-st.caption("Universal Router v2.0 | GSF SCI Standard | 2025")
+st.caption("Universal Router v2.0 | GSF SCI Standard | Sustainable Logistics 2025")
