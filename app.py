@@ -130,4 +130,4 @@ elif app_phase == "📊 Impact Report":
         st.write("No data available yet. Start planning to see your impact!")
 
 st.divider()
-st.caption("Global
+st.caption("Global Logistics | Sustainable Routing | Mobile-First | 2025")
